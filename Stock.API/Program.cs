@@ -1,11 +1,34 @@
+using MassTransit;
+using Shared;
+using Stock.API.Consumer;
+using Stock.API.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddMassTransit(configurator =>
+{
+    configurator.AddConsumer<OrderCreatedEventConsumer>();
+
+    configurator.UsingRabbitMq((context, _configurator) =>
+    {
+        _configurator.Host(builder.Configuration["RabbitMQ"]);
+
+
+        _configurator.ReceiveEndpoint(RabbitMQSettings.Stock_OrderCreatedEventQueue, e => e.ConfigureConsumer<OrderCreatedEventConsumer>(context));
+
+    });
+});
+
+builder.Services.AddSingleton<MongoDbService>();
+
+
 
 var app = builder.Build();
 
